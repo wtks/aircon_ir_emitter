@@ -8,6 +8,8 @@ jobs:
           - GO111MODULE: "on"
     working_directory: /go/src/github.com/wtks/aircon_ir_emitter
     steps:
+      - run: apt-get install -y linux-headers-amd64
+
       - checkout
 
       - restore_cache:
