@@ -1,0 +1,60 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.11.0
+        environment:
+          - GO111MODULE: "on"
+    working_directory: /go/src/github.com/wtks/aircon_ir_emitter
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - gomod-{{ checksum "go.mod" }}
+      - run: go mod download
+      - save_cache:
+          key: gomod-{{ checksum "go.mod" }}
+          when: always
+          paths:
+            - /go/pkg/mod/cache
+
+      - run:
+          name: build
+          when: always
+          command: |
+            mkdir -p /tmp/artifacts
+            GOOS=linux GOARCH=arm GOARM=5 go build -o /tmp/artifacts/aie
+      - store_artifacts:
+          path: /tmp/artifacts
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - .
+  release:
+    docker:
+      - image: cibuilds/github:0.12
+    steps:
+      - attach_workspace:
+          at: /tmp/artifacts
+      - run:
+          name: "Publish Release on GitHub"
+          command: ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} /tmp/artifacts/
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
