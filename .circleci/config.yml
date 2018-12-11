@@ -27,7 +27,7 @@ jobs:
           when: always
           command: |
             mkdir -p /tmp/artifacts
-            GOOS=linux GOARCH=arm GOARM=5 go build -o /tmp/artifacts/aie
+            GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=1 go build -o /tmp/artifacts/aie
       - store_artifacts:
           path: /tmp/artifacts
       - persist_to_workspace:
